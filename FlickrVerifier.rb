@@ -2,7 +2,9 @@ require 'yaml'
 require 'flickraw'
 require 'pp'
 
-config = YAML.load_file( "config.yml" )
+CONFIG_FILE="config.yml"
+
+config = YAML.load_file( CONFIG_FILE )
 
 FlickRaw.api_key = config["flickr"]["api_key"]
 FlickRaw.shared_secret= config["flickr"]["shared_secret"]
@@ -22,6 +24,11 @@ if access_token.nil? || access_secret.nil?
     flickr.get_access_token(token['oauth_token'], token['oauth_token_secret'], verify)
     login = flickr.test.login
     puts "You are now authenticated as #{login.username} with token #{flickr.access_token} and secret #{flickr.access_secret}"
+    config["flickr"]["access_token"] = flickr.access_token
+    config["flickr"]["access_secret"] = flickr.access_secret
+    File.open(CONFIG_FILE+".new", "w") do |f|
+        f.write(YAML::dump(config))
+    end
   rescue FlickRaw::FailedResponse => e
     puts "Authentication failed : #{e.msg}"
   end

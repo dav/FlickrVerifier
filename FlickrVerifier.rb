@@ -1,6 +1,9 @@
 require 'yaml'
 require 'flickraw'
 require 'pp'
+require 'active_support/core_ext/object/blank'
+require 'digest/md5'
+require "open-uri"
 
 CONFIG_FILE="config.yml"
 
@@ -37,9 +40,32 @@ else
   flickr.access_secret = access_secret
 end
 
-results = flickr.photos.search :user_id => 'me', :page => 1, :sort => 'date-posted-asc', :extras => 'original_format,url_o,date_taken', :per_page => 10
-results.each do |result|
-  puts "#{result["datetaken"]}\t#{result['url_o']}"
+def best_url(hash)
+  %w(o l m).each do |type|
+    url = hash["url_#{type}"]
+    return url unless url.blank?
+  end
+  nil
 end
 
-pp results[0]
+@page = 1
+def next_page
+  flickr.photos.search :user_id => 'me', 
+                      :page => @page, 
+                      :sort => 'date-posted-desc', 
+                      :extras => 'original_format,url_o,url_l,url_m,date_taken', 
+                      :per_page => 500
+end
+
+results = next_page
+while results && results.size > 0 do
+  results.each do |result|
+    url = best_url(result)
+    unless url.blank?
+      open(url) {|f|
+        md5 = Digest::MD5.hexdigest(f.read)
+        puts "#{result["datetaken"]}\t#{md5}\t#{best_url(result)}"
+      }
+    end
+  end
+end

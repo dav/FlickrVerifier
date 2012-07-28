@@ -48,15 +48,18 @@ def best_url(hash)
   nil
 end
 
-@page = 1
 def next_page
-  flickr.photos.search :user_id => 'me', 
+  STDERR.puts "Loading page #{@page}"
+  results = flickr.photos.search :user_id => 'me', 
                       :page => @page, 
                       :sort => 'date-posted-desc', 
                       :extras => 'original_format,url_o,url_l,url_m,date_taken', 
                       :per_page => 500
+  @page+=1
+  return results
 end
 
+@page = 1
 results = next_page
 while results && results.size > 0 do
   results.each do |result|
@@ -68,4 +71,5 @@ while results && results.size > 0 do
       }
     end
   end
+  results = next_page
 end
